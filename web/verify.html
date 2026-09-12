@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>vectorize — verify</title>
+    <style>
+      body { font: 13px ui-monospace, monospace; margin: 24px; color: #16181d; }
+      h1 { font-size: 14px; }
+      pre { background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; padding: 12px; overflow-x: auto; }
+      .pass { color: #047857; }
+      .fail { color: #b91c1c; font-weight: 700; }
+      .shots { display: flex; gap: 16px; flex-wrap: wrap; }
+      .shots figure { margin: 0; }
+      .shots img, .shots svg { border: 1px solid #e4e4e7; width: 160px; height: 160px; image-rendering: pixelated; }
+      figcaption { font-size: 11px; color: #6b7280; }
+    </style>
+  </head>
+  <body>
+    <h1>vectorize — end-to-end check</h1>
+    <p>
+      Traces bitmaps this page draws itself, so the right answer is known exactly. Covers the
+      parts the unit tests cannot reach: wasm start-up, potrace, and the coordinate mapping
+      back to source pixels.
+    </p>
+    <pre id="out">running…</pre>
+    <div class="shots" id="shots"></div>
+    <script type="module" src="/src/verify.ts"></script>
+  </body>
+</html>

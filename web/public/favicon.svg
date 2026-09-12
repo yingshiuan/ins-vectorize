@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect width="24" height="24" rx="5" fill="#16181d"/>
+  <!-- pixels on the left, a fitted curve with its handles on the right -->
+  <g fill="#ffffff" opacity="0.55">
+    <rect x="4" y="13" width="3" height="3"/>
+    <rect x="7" y="10" width="3" height="3"/>
+    <rect x="10" y="8" width="3" height="3"/>
+  </g>
+  <path d="M4.5 16.5C8 16.5 10 7.5 19 7.5" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"/>
+  <circle cx="19" cy="7.5" r="2" fill="#16181d" stroke="#ffffff" stroke-width="1.4"/>
+</svg>
