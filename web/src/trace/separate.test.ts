@@ -10,8 +10,9 @@ import { describe, expect, it } from 'vitest'
 import { BLACK, BLUE, RED, ground, rect } from './fixtures'
 import { toHex } from './ink'
 import { visibleCoverage } from './layers'
+import { MAX_INKS } from './census'
 import { chooseInks, paintedColors, separate } from './separate'
-import { defaultSpec, type TraceSpec } from './spec'
+import { TraceSpecSchema, defaultSpec, type TraceSpec } from './spec'
 
 /** Three inks, none of them named: red dominant, black abutting it, a blue accent clear of both. */
 function threeInks() {
@@ -19,6 +20,22 @@ function threeInks() {
   rect(img, 8, 8, 52, 104, RED)
   rect(img, 60, 8, 40, 104, BLACK)
   rect(img, 110, 40, 30, 30, BLUE)
+  return img
+}
+
+/** Seven well-separated inks — one more than the default cap of six lets through. */
+function sevenInks() {
+  const hues = [
+    [0xa3, 0x1e, 0x2c],
+    [0x1e, 0x3f, 0xa3],
+    [0x00, 0x00, 0x00],
+    [0x1e, 0x7a, 0x3f],
+    [0xe0, 0x7b, 0x1e],
+    [0x6b, 0x2e, 0xa3],
+    [0x1e, 0xa3, 0xa3],
+  ] as const
+  const img = ground(210, 60)
+  hues.forEach((c, i) => rect(img, 5 + i * 29, 8, 24, 44, c))
   return img
 }
 
@@ -114,6 +131,24 @@ describe('separate', () => {
   it('stops at the limit', () => {
     const { palette } = separate(threeInks(), spec({ mode: 'multi', limit: 2 }))
     expect(palette.map((p) => toHex(p.color))).toEqual([RED_HEX, '#000000'])
+  })
+
+  it('can be raised to paint every ink the census found', () => {
+    // The case the cap control exists for: seven inks, a default cap of six, one left out
+    // with nothing on screen explaining where it went.
+    const img = sevenInks()
+    expect(separate(img, spec({ mode: 'multi' })).report!.distinct).toHaveLength(7)
+    expect(separate(img, spec({ mode: 'multi', limit: 6 })).palette).toHaveLength(6)
+    expect(separate(img, spec({ mode: 'multi', limit: 7 })).palette).toHaveLength(7)
+  })
+
+  it('keeps the cap ceiling in reach of every ink the census can report', () => {
+    // MAX_INKS is the census's own ceiling and the top of the cap's range. If those two
+    // drifted apart there would be an ink no setting could paint — silently, since the
+    // palette would simply list a row that never gets a layer.
+    expect(TraceSpecSchema.parse({ palette: { limit: MAX_INKS } }).palette.limit).toBe(MAX_INKS)
+    // Asking for more than the image holds is not an error; it just paints what is there.
+    expect(separate(sevenInks(), spec({ mode: 'multi', limit: MAX_INKS })).palette).toHaveLength(7)
   })
 })
 

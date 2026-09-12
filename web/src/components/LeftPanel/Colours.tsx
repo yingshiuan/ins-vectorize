@@ -11,10 +11,10 @@
  * the panel ordering hides the dependency.
  */
 import { useTraceStore } from '../../store/useTraceStore'
-import type { Census, Ink } from '../../trace/census'
+import { MAX_INKS, type Census, type Ink } from '../../trace/census'
 import { toHex } from '../../trace/ink'
 import { hidden as hiddenSet, paintedColors } from '../../trace/separate'
-import { Section, SegmentedControl } from '../ui'
+import { Field, Section, SegmentedControl, Slider } from '../ui'
 
 const MODES = [
   { value: 'auto', label: 'Auto', title: 'Let the image decide' },
@@ -86,7 +86,7 @@ function Swatch({ ink, painted, off, onToggle }: { ink: Ink; painted: boolean; o
 
 export function Colours({ census }: { census: Census | null }) {
   const spec = useTraceStore((s) => s.spec)
-  const patch = useTraceStore((s) => s.patch)
+  const { patch, begin, end } = useTraceStore()
   const { mode, limit } = spec.palette
 
   if (!census) {
@@ -106,6 +106,13 @@ export function Colours({ census }: { census: Census | null }) {
   const paints = new Set(painted)
   const unpainted = shown.filter((i) => !paints.has(toHex(i.color))).length
   const allOff = painted.length > 0 && painted.every((hex) => off.has(hex))
+
+  // The cap is only worth showing when it can actually bite. Its floor is 2, so with two
+  // inks or fewer every one of them is painted at every setting, and in single mode or on
+  // a photograph the palette is not consulted at all — a slider there would move a stored
+  // number without changing the picture, which is the same dead control the inert swatch
+  // rows avoid. MAX_INKS is the ceiling because that is as many as the census reports.
+  const capMatters = verdict !== 'photographic' && mode !== 'single' && distinct.length > 2
 
   const toggle = (hex: string) =>
     patch('palette', {
@@ -158,6 +165,20 @@ export function Colours({ census }: { census: Census | null }) {
         options={MODES}
       />
 
+      {capMatters && (
+        <Field label="Most colours" hint={`${limit}`}>
+          <Slider
+            min={2}
+            max={MAX_INKS}
+            step={1}
+            value={limit}
+            onChange={(v) => patch('palette', { limit: Math.round(v) })}
+            onCommitStart={begin}
+            onCommitEnd={end}
+          />
+        </Field>
+      )}
+
       {allOff && (
         <p className="text-[11px] leading-snug text-red-600">
           Every colour is switched off, so the export is empty. Show one to get a shape back.
@@ -170,7 +191,7 @@ export function Colours({ census }: { census: Census | null }) {
           : unpainted > 0 && painted.length === 1
             ? 'Single mode paints the dominant ink only. Switch to Multi to get a layer per colour, each with its own switch.'
             : unpainted > 0
-              ? `Only the first ${limit} colours are painted; the rest are left out.`
+              ? `The cap is leaving ${unpainted} out. Raise it to paint ${unpainted === 1 ? 'it' : 'them'}.`
               : 'Switch a colour off to leave it out of the SVG and the PNG. It leaves a hole rather than showing the colour underneath, and is not traced at all, so hiding one is also faster.'}
       </p>
     </Section>

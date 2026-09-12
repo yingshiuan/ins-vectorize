@@ -98,6 +98,14 @@ blend line at every coverage, boundary pixels 0.031–0.271 at every mix. That g
 gate. The distance *between* the two nearest inks is not — both populations span roughly
 0.02 to 0.25 there, so no threshold on it can work.
 
+How many inks get painted is **capped rather than counted**. `palette.limit` is a maximum,
+not a number of layers: how many inks an image has is a fact about the image, while the spec
+describes the job — and a count would persist, so a six chosen for one picture would follow
+the user onto a two-colour one. Its ceiling is `census.ts`'s own `MAX_INKS`, so the control
+can always reach every ink the census is able to report. A test holds those two numbers
+together, because drifting apart would leave a palette row that no setting can paint and
+nothing on screen to say why.
+
 ## Switching a colour off
 
 Each ink in the palette has a switch, and the export carries what is switched on — both
