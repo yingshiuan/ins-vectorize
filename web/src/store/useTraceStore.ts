@@ -21,6 +21,11 @@ export interface Source {
 }
 
 const HISTORY_LIMIT = 60
+/**
+ * Deliberately not renamed with the product. The key is never shown, and changing it
+ * orphans every saved spec in every browser that holds one — a silent reset in exchange
+ * for tidiness.
+ */
 const STORAGE_KEY = 'vectorize'
 
 type Section = 'background' | 'palette' | 'trace' | 'fit' | 'output'

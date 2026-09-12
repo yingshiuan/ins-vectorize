@@ -66,7 +66,9 @@ export default function App() {
           <span className="grid h-5 w-5 shrink-0 place-items-center rounded-[4px] bg-ink text-[10px] font-bold text-white">
             ◹
           </span>
-          <h1 className="truncate text-sm font-semibold tracking-tight">vectorize</h1>
+          <h1 className="truncate text-sm font-semibold tracking-tight">
+            <span className="text-muted">ins</span> vectorize
+          </h1>
           {result && (
             <span className="hidden truncate text-[11px] tabular-nums text-muted lg:inline">
               · {result.nodes} nodes · {result.outlines} outlines · {formatBytes(bytes)} ·{' '}
