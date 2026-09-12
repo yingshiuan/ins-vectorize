@@ -197,6 +197,14 @@ and node has no `ImageData`. Neither stand-in touches the code being tested.
 
 ## Licence
 
-⚠️ potrace is **GPL-2.0**, and `esm-potrace-wasm` inherits it. Fine for a local tool
-or an open-source one; it does mean this cannot ship closed-source without swapping
-the tracer.
+**GPL-2.0** — the full text is in [LICENSE](LICENSE). Copyright (C) 2026 Ying.
+
+Inherited rather than chosen: potrace is GPL-2.0 and `esm-potrace-wasm` carries that
+forward, and because the tracer is bundled into the build, the build is a derivative work
+of it. `LICENSE` is byte-for-byte the copy that dependency ships, which is the canonical
+FSF text.
+
+Fine for a local tool or an open-source one. It does mean this cannot ship closed-source
+as it stands — and the tracer is the only reason, since the rest is this project's own
+code, the fitter included. Swap `esm-potrace-wasm` for a non-GPL tracer and nothing else
+here stands in the way of a permissive licence.
