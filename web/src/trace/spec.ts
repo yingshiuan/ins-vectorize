@@ -84,6 +84,18 @@ export const TraceSpecSchema = z.object({
       smooth: z.number().min(0.05).max(3).default(0.8),
       /** Smoothing along the outline before refitting, px. logo_svg.py:207 SIGMA. */
       denoise: z.number().min(0).max(3).default(1),
+      /**
+       * Outlines that are circles come out as two arcs rather than a ring of cubics. A
+       * circle is only accepted inside the allowance the cubics would have been held to
+       * (see shapes.ts), so this trades nothing in accuracy for the tidier file.
+       */
+      shapes: z.boolean().default(true),
+      /**
+       * A shape that repeats — the two a's in a wordmark — comes out as exact copies of its
+       * first appearance. Only shapes that match outline for outline are snapped; see
+       * repeats.ts for how closely.
+       */
+      repeats: z.boolean().default(true),
     })
     .prefault({}),
 

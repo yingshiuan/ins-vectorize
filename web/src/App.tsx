@@ -5,7 +5,7 @@ import { LeftPanel } from './components/LeftPanel/LeftPanel'
 import { download, filenameFor, formatBytes, svgBlob } from './export/download'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { useCanRedo, useCanUndo, useTraceStore } from './store/useTraceStore'
-import { cutout, toPng } from './trace/cutout'
+import { toPng } from './trace/cutout'
 import { useTrace } from './trace/useTrace'
 
 /**
@@ -28,7 +28,7 @@ export default function App() {
   const { undo, redo, reset, setPicking, patch } = useTraceStore()
   const canUndo = useCanUndo()
   const canRedo = useCanRedo()
-  const { img, data, result, running, error } = useTrace(spec, source)
+  const { img, data, result, running, error, cutout } = useTrace(spec, source)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -108,7 +108,7 @@ export default function App() {
             title="The source with its background removed — and any switched-off colours — as a PNG"
             onClick={async () => {
               if (!data) return
-              download(await toPng(cutout(data, spec)), `${stem}-cutout.png`)
+              download(await toPng(await cutout(spec)), `${stem}-cutout.png`)
             }}
             className="h-9 rounded-md border border-line px-2.5 text-xs transition hover:bg-panel disabled:opacity-30 lg:h-8"
           >

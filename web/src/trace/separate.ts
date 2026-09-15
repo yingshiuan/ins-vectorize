@@ -9,7 +9,7 @@
  * Pure, so it is testable in node: the decision a hidden colour turns on is arithmetic,
  * and arithmetic that can only be checked through potrace is arithmetic that drifts.
  */
-import { census, type Census, type Ink } from './census'
+import { census, type Census, type CensusSummary, type Ink } from './census'
 import { inkMask, parseHex, toHex, type Bitmap, type Pixels, type Rgb } from './ink'
 import { splitLayers, type ColorLayer } from './layers'
 import type { TraceSpec } from './spec'
@@ -74,7 +74,7 @@ export function hidden(spec: TraceSpec): Set<string> {
  * silhouettes of the same picture. The Colours panel says so rather than leaving the
  * switch looking broken.
  */
-export function chooseInks(report: Census, spec: TraceSpec): Ink[] {
+export function chooseInks(report: CensusSummary, spec: TraceSpec): Ink[] {
   const dominant = [report.inks[0]]
   if (spec.palette.mode === 'single' || report.verdict === 'photographic') return dominant
   if (spec.palette.mode === 'multi' || report.verdict === 'multi') {
@@ -91,6 +91,6 @@ export function chooseInks(report: Census, spec: TraceSpec): Ink[] {
  * rather than from the traced layers on purpose — a single layer's fill can be
  * overridden by hand, and then its colour is no longer the palette's.
  */
-export function paintedColors(report: Census | null, spec: TraceSpec): string[] {
+export function paintedColors(report: CensusSummary | null, spec: TraceSpec): string[] {
   return report ? chooseInks(report, spec).map((i) => toHex(i.color)) : []
 }

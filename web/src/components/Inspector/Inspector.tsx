@@ -1,7 +1,7 @@
 /** How the outline is traced, how closely it is followed, and what colour it comes out. */
 import { useTraceStore } from '../../store/useTraceStore'
-import type { TraceLayer } from '../../trace/pipeline'
-import { Field, Section, Slider } from '../ui'
+import type { TraceLayer } from '../../trace/tracer'
+import { Field, Section, Slider, Toggle } from '../ui'
 import { ColorField } from '../ColorField'
 
 export function Inspector({
@@ -14,6 +14,8 @@ export function Inspector({
   const spec = useTraceStore((s) => s.spec)
   const picking = useTraceStore((s) => s.picking)
   const { patch, setPicking, begin, end } = useTraceStore()
+  const circles = layers.reduce((n, l) => n + l.circles, 0)
+  const repeats = layers.reduce((n, l) => n + l.repeats, 0)
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -76,6 +78,28 @@ export function Inspector({
             onCommitEnd={end}
           />
         </Field>
+
+        <Toggle
+          checked={spec.fit.shapes}
+          onChange={(v) => patch('fit', { shapes: v })}
+          label="Circles as arcs"
+          hint={
+            spec.fit.shapes && layers.length > 0
+              ? `${circles} found. Each is written as two arcs, and only where arcs hold as closely as curves would.`
+              : 'Outlines that are circles are written as two arcs instead of a ring of curves.'
+          }
+        />
+
+        <Toggle
+          checked={spec.fit.repeats}
+          onChange={(v) => patch('fit', { repeats: v })}
+          label="Snap repeated shapes"
+          hint={
+            spec.fit.repeats && layers.length > 0
+              ? `${repeats} outline${repeats === 1 ? '' : 's'} written as exact copies of an earlier one.`
+              : "A shape that appears more than once, like the two a's in a word, comes out identical each time."
+          }
+        />
       </Section>
 
       <Section title="Output">

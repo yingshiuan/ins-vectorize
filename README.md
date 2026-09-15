@@ -28,11 +28,16 @@ it.
 | stage | module | what it does |
 |---|---|---|
 | ink | `trace/ink.ts` | how much of each pixel is artwork rather than background |
-| prepare | `trace/prepare.ts` | pad, blur, enlarge 4×, threshold |
+| prepare | `trace/prepare.ts`, `trace/crop.ts` | pad, blur, enlarge 4×, threshold — around each layer's own ink |
 | trace | `trace/potrace.ts` | potrace, compiled to WebAssembly |
 | resample | `trace/resample.ts` | even samples, and how sharply the outline bends at each |
 | fit | `trace/fit.ts` | ★ curvature-adaptive tolerance, Schneider + Newton |
+| circles | `trace/shapes.ts` | an outline that is a circle, as two arcs |
+| repeats | `trace/repeats.ts` | a shape that repeats, as exact copies of its first appearance |
 | emit | `trace/emit.ts` | path data and the document |
+
+`trace/tracer.ts` runs those in order and remembers each stage's last answers; it runs in a
+worker (`trace/worker.ts`), so none of it touches the page's thread.
 
 The odd-looking step is prepare: blurring *before* enlarging looks like throwing
 detail away. It is the opposite. A hard edge in the source sits between two pixels
@@ -143,6 +148,89 @@ showing *is* the sum of all of them. With nothing hidden that is the ink mask it
 which is why a PNG does not shift by a count in the last place just because the palette
 was split on the way past.
 
+## Off the main thread
+
+The trace runs in a module worker. `trace/host.ts` is a queue one deep: a newer request
+replaces whatever was waiting, and a running trace looks between stages for one, abandoning
+itself if there is — potrace cannot be interrupted mid-call, so a stage boundary is the
+soonest it can give way. The image crosses to the worker once per source rather than once
+per trace, and a result leaves the census's per-pixel working behind: one Int32 per pixel,
+read by nothing on the page.
+
+Each stage reads part of the spec and is remembered under that part, serialised whole —
+`background` and `palette` for the separation, `trace` and the layer's own mask for
+potrace, `fit` for the refit — so a Fit slider never reaches potrace and an Output change
+is a string join. Keys are whole sections rather than chosen fields, and `tracer.test.ts`
+changes every field in turn to hold each one to the stage that reads it.
+
+Measured on the 2046 px reference wordmark in Chrome, dragging Smoothing: the longest gap
+between frames went from **717 ms to 17 ms**, and the trace that lands when the drag stops
+from 742 ms to 43 ms. A second change of smoothing costs 59 ms instead of 821; a page
+colour, nothing measurable.
+
+## Cropping
+
+`prepare` is where a layer's time goes — 461 of 790 ms on the wordmark — and it used to
+enlarge the whole canvas for every layer, however little of it the layer's ink covers. Now
+each layer is prepared from a box around its own ink, and the output is **byte-identical**:
+checked on every image here, and by a selftest that traces every fixture's layers both ways.
+
+Two findings made that true, and both were found by the check failing first:
+
+- **potrace is not translation-invariant.** Its arithmetic runs on absolute bitmap
+  coordinates. Handing it identical pixels with 32 px or less to their left traced the
+  ring fixture's hole differently from the full canvas; 40 px, the same; 256 px of extra
+  border all round, different again. Only the left edge mattered. So the prepared crop is
+  put back in place, in a bitmap that keeps the canvas's left and bottom edges — potrace
+  measures y from the bottom — and only the empty space to the right and above is dropped.
+- **A soft colour split scatters faint coverage across a layer.** With a small blue accent
+  added to the wordmark, the accent's layer held 3,467 pixels of coverage 1–29 spread over
+  the whole word, and a box around "any coverage" was a box around everything. Coverage
+  below 127 / `upscaleGain` cannot set a pixel on its own — blur averages, and the Lanczos
+  overshoot is bounded — so the box leaves it out, and the margin is doubled so that no
+  pixel near the crop's edge can tell whether it was cropped.
+
+On that two-colour image the trace went from **2090 ms to 1170 ms**. The wordmark alone
+barely moves (844 → 821 ms): its one layer's ink spans the frame, so there is nothing to
+crop, and the blur and the enlargement are still the cost.
+
+## Circles
+
+An outline that is a circle comes out as two arcs. It is accepted only inside the
+allowance the cubics would have been held to: every sample within `tolerance(turning)` of
+the circle, and within what a true circle of that radius would be allowed — so an ellipse
+3 px out of round, a rounded rectangle or a lopsided blob stays curves, and arcs are never
+less faithful than the curves they replace. The winding is kept, because nonzero fill only
+cuts a ring's hole because it runs the other way.
+
+The arc's endpoints are written from a centre and radius already rounded to the output's
+two decimals. Rounded separately they can land a hundredth short of a diameter, and each
+half-arc then bows out by about √(r·0.01) — a whole pixel on a 100 px circle.
+
+## Repeated shapes
+
+potrace's sensitivity to position has a visible consequence: the wordmark's two t's and
+two a's trace a few hundredths and a node or two apart. Shapes that are the same shape
+moved are now written as exact copies of their first appearance, number for number apart
+from the shift. It generalises `logo_svg.py:354`, which recognised letters as contours
+taller than 200 px, holes by bounding box, and a match by box and area — none of which
+travels, and the last of which cannot tell a b from a d. Here holes are found by winding
+and containment, and a match is confirmed on the outlines themselves.
+
+How close counts as the same is a share of the shape's scale, √area, and each half of that
+was measured:
+
+- **A share, not a distance.** The t's and a's trace 0.59 and 0.63 px apart in the 568 px
+  export, 2.31 and 1.47 px in the 2046 px one.
+- **Of √area, not of length.** Against their longest side the glyphs agree to 0.3–0.5% —
+  but so do the reference badge's two 724 × 2.5 px rules, whose ends differ by 3.8 px. Against
+  √area the glyphs are 0.43–0.84%, the rules 11%, a textured badge's hairlines 5–25%.
+
+1.5% is nearly twice the worst glyph. Both wordmark exports now snap the same three
+outlines, and the badge's rules are left alone. Below 30 px or so the floor takes over —
+the fitter's own 0.2 px plus half a sample — so specks snap only to specks that are the
+same to the tracer's resolution.
+
 ## Parity
 
 `web/src/trace/fit.ts` is a port, and a port is worth what its evidence is worth.
@@ -173,8 +261,13 @@ where a silent error looks plausible. A y-flip, a forgotten division by the upsc
 factor, a missing `PAD` offset: each leaves curves that are individually fine and
 collectively in the wrong place. So `verify` traces shapes whose geometry is known
 exactly — a disc, a ring, an off-centre rectangle, a red disc on white — and checks
-the bounding boxes against the numbers they must produce. The same assertions run in
-a browser at `/verify.html`, which also shows each result beside its source.
+the bounding boxes against the numbers they must produce. It also traces every layer
+cropped and whole and requires no drift at all, runs a remembering tracer against a
+forgetful one through a sequence of settings, and checks circles and repeated shapes on
+fixtures built to tempt them: a dot, a ring's hole, a b beside a b and a b beside a d.
+The same assertions run in a browser at `/verify.html`, which also shows each result
+beside its source, and checks that the worker starts and answers exactly as the page
+would.
 
 For the record, potrace emits `translate(0,H) scale(0.1,-0.1)`: tenths of a pixel,
 with the y-flip carried in the transform's negative scale.
@@ -186,16 +279,16 @@ and node has no `ImageData`. Neither stand-in touches the code being tested.
 
 ## Not done yet
 
-- **Shape detection.** A traced circle is currently a handful of cubics; it should be
-  one `A`. Fit a circle to each run of samples, accept it when the residual holds.
-- **Repeated-shape snapping.** `logo_svg.py:354` makes the two `a`s in a wordmark
-  byte-identical. Worth porting.
-- **A worker.** The pipeline is debounced but runs on the main thread. Measured on the
-  reference wordmark: 777 ms at one colour, **2013 ms at three** — two seconds of frozen UI.
-- **Cropping.** `prepare` enlarges the *whole canvas* 4× and potrace scans all of it
-  however few pixels are set, so N inks cost N full traces. Cropping each layer to its
-  own ink bounds would change that to `O(artwork + accent boxes)`. This is also why the
-  canvas still keeps the source's full frame with its dead margin, where `logo_svg.py`
+- **Arcs inside an outline.** Only outlines that are whole circles become arcs. A rounded
+  corner is still cubics: that needs each outline split at its corners and every run
+  offered a line, an arc or curves.
+- **`prepare` is still the cost.** Cropping only helps a layer whose ink leaves some of the
+  frame empty; a wordmark that spans it traces as slowly as before, and the blur and the
+  Lanczos enlargement are most of that. They are plain JavaScript loops over a 16× canvas.
+- **Textured artwork pays for circles and repeats.** Finding holes compares every outline
+  with every other by point-in-polygon, and on a badge with 900 outlines of texture the
+  fit stage takes 845 ms instead of 610 — a quarter of a second a wordmark never notices.
+- **The canvas keeps the source's full frame**, dead margin and all, where `logo_svg.py`
   trims to the artwork first.
 - **Fine artwork still loses to a rebuild.** Traced at the default, the reference emblem
   keeps its hairlines; the shipped logo's are still cleaner, because that

@@ -1,15 +1,19 @@
 /**
- * Fitted curves out as SVG path data and a finished document.
+ * Fitted outlines out as SVG path data and a finished document.
  *
- * Ported from logo_svg.py:65 and :387.
+ * Ported from logo_svg.py:65 and :387; circles are this app's own.
  */
+import type { Outline } from './outline'
 import type { Cubic } from './vec'
 
 /** Two decimals, like the Python `:.2f`, so parity fixtures compare directly. */
 const f = (n: number): string => n.toFixed(2)
 
+/** Onto the grid `f` writes, exactly. */
+export const hundredths = (n: number): number => Math.round(n * 100) / 100
+
 /** A cubic whose controls sit exactly on the thirds is a straight edge; say so. */
-function isStraight([p0, c1, c2, p]: Cubic): boolean {
+export function isStraight([p0, c1, c2, p]: Cubic): boolean {
   const e = 1e-6
   return (
     Math.abs(c1[0] - (p0[0] + (p[0] - p0[0]) / 3)) <= e &&
@@ -34,6 +38,27 @@ export function bezierPath(fitted: readonly (readonly Cubic[])[], dy = 0): strin
     out.push('Z')
   }
   return out.join('')
+}
+
+/**
+ * A circle as two half-turn arcs, in one subpath.
+ *
+ * Centre and radius go onto the two-decimal grid *before* the endpoints are worked out
+ * from them, so the endpoints are exactly 2r apart as written. Rounded independently they
+ * can land a hundredth short of a diameter, and an arc between points closer than 2r is a
+ * different arc: each half bows out by about √(r·0.01), a whole pixel on a 100 px circle.
+ */
+export function circlePath({ c, r, sweep }: Extract<Outline, { kind: 'circle' }>): string {
+  const cx = hundredths(c[0])
+  const cy = hundredths(c[1])
+  const radius = hundredths(r)
+  const arc = `A${f(radius)},${f(radius)} 0 1 ${sweep} `
+  return `M${f(cx + radius)},${f(cy)}${arc}${f(cx - radius)},${f(cy)}${arc}${f(cx + radius)},${f(cy)}Z`
+}
+
+/** One subpath per outline, whichever form each is in. */
+export function outlinePath(outlines: readonly Outline[]): string {
+  return outlines.map((o) => (o.kind === 'circle' ? circlePath(o) : bezierPath([o.curves]))).join('')
 }
 
 /** How many drawing commands a path holds — the honest measure of how clean a trace is. */
