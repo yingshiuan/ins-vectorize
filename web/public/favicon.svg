@@ -1,11 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <rect width="24" height="24" rx="5" fill="#16181d"/>
-  <!-- pixels on the left, a fitted curve with its handles on the right -->
+  <rect width="24" height="24" rx="5.5" fill="#16181d"/>
+  <!-- The three squares are the curve below sampled on a 4-unit grid — the same
+       edge twice, once as pixels and once as a path, which is the whole of what
+       the app does. Muted rather than white so the curve stays the figure; at
+       16px the eye gets one confident stroke and a hint of staircase behind it. -->
   <g fill="#ffffff" opacity="0.55">
-    <rect x="4" y="13" width="3" height="3"/>
-    <rect x="7" y="10" width="3" height="3"/>
-    <rect x="10" y="8" width="3" height="3"/>
+    <rect x="4" y="14" width="4" height="4"/>
+    <rect x="8" y="10" width="4" height="4"/>
+    <rect x="12" y="6" width="4" height="4"/>
   </g>
-  <path d="M4.5 16.5C8 16.5 10 7.5 19 7.5" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"/>
-  <circle cx="19" cy="7.5" r="2" fill="#16181d" stroke="#ffffff" stroke-width="1.4"/>
+  <path d="M4 17.8C8.6 17.8 11 7 19.1 7" fill="none" stroke="#ffffff" stroke-width="2.1" stroke-linecap="round"/>
+  <!-- An anchor sitting on its own path, the way a vector editor draws one. -->
+  <circle cx="19.1" cy="7" r="1.75" fill="#16181d" stroke="#ffffff" stroke-width="1.25"/>
 </svg>
