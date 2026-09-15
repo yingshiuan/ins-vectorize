@@ -29,7 +29,7 @@ import {
 } from './vec'
 
 /** The tightest a curve is ever held, px. Below this the fit chases anti-aliasing. */
-const TOL_MIN = 0.2
+export const TOL_MIN = 0.2
 
 export interface FitOptions {
   /** How far a refitted curve may stray on gentle stretches, px. logo_svg.py:206 TOL_MAX. */
@@ -188,9 +188,11 @@ export function tolerance(near: ArrayLike<number>, tolMax: number): number[] {
 /**
  * Refit one closed outline: tight on sharp bends and tips, relaxed on gentle
  * curves. logo_svg.py:341 `fit_contour`.
+ *
+ * `P` is `dense(contour)`, for a caller that has already sampled the outline for
+ * something else and should not pay for it twice.
  */
-export function fitContour(contour: readonly Seg[], { tolMax, sigma }: FitOptions): Cubic[] {
-  const P = dense(contour)
+export function fitContour(contour: readonly Seg[], { tolMax, sigma }: FitOptions, P: readonly Vec[] = dense(contour)): Cubic[] {
   if (P.length < 4) return []
 
   const near = turning(P, NEAR)

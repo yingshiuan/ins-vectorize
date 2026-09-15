@@ -117,6 +117,18 @@ export function soften(raw: Raw, sigma: number): Raw {
   return raw
 }
 
+/**
+ * Three inks, none of them named: red dominant, black abutting it along x = 60, and a
+ * small blue accent clear of both.
+ */
+export function threeInks(): Raw {
+  const raw = ground(160, 120)
+  rect(raw, 8, 8, 52, 104, RED)
+  rect(raw, 60, 8, 40, 104, BLACK)
+  rect(raw, 110, 40, 30, 30, BLUE)
+  return raw
+}
+
 /** A horizontal hue sweep: many colours, none dominant. Stands in for a photograph. */
 export function sweep(raw: Raw): Raw {
   for (let x = 0; x < raw.width; x++) {

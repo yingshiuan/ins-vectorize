@@ -305,3 +305,17 @@ export function census(img: Pixels, mask: Bitmap, background: Rgb, limit = MAX_I
     assignment: counted.assignment,
   }
 }
+
+/** What the page is shown of a census: everything but the per-pixel working. */
+export type CensusSummary = Omit<Census, 'assignment'>
+
+/**
+ * A census without `assignment`.
+ *
+ * That is one Int32 per pixel — 16 MB on a 2000 px square — and nothing outside this
+ * module reads it. A trace result is copied from the worker to the page every time, so
+ * the part nobody reads stays behind.
+ */
+export function summarize({ inks, distinct, verdict, background, counted, floor, clusters }: Census): CensusSummary {
+  return { inks, distinct, verdict, background, counted, floor, clusters }
+}

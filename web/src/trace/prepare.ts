@@ -35,11 +35,16 @@ export function expand(src: Bitmap, pad: number): Bitmap {
   return { width, height, data }
 }
 
+/** How far `blur` reaches either side of a pixel, px. Zero when there is no blur. */
+export function blurRadius(sigma: number): number {
+  return sigma > 0 ? Math.max(1, Math.ceil(3 * sigma)) : 0
+}
+
 /** Separable Gaussian, edges held rather than wrapped. */
 export function blur(src: Bitmap, sigma: number): Bitmap {
   if (sigma <= 0) return src
   const { width, height } = src
-  const r = Math.max(1, Math.ceil(3 * sigma))
+  const r = blurRadius(sigma)
   const k = new Float64Array(2 * r + 1)
   let sum = 0
   for (let i = -r; i <= r; i++) {
@@ -78,19 +83,16 @@ export function blur(src: Bitmap, sigma: number): Bitmap {
 const sinc = (x: number): number => (x === 0 ? 1 : Math.sin(Math.PI * x) / (Math.PI * x))
 const lanczos = (x: number, a: number): number => (Math.abs(x) >= a ? 0 : sinc(x) * sinc(x / a))
 
-/** Enlarge by an integer factor with a Lanczos-3 kernel, separably. */
-export function upscale(src: Bitmap, factor: number, a = 3): Bitmap {
-  if (factor === 1) return src
-  const width = src.width * factor
-  const height = src.height * factor
+type Tap = { offset: number; weight: number }
 
-  // Weights repeat every `factor` output pixels, so they are built once.
+/** Normalised Lanczos taps for each output phase of an integer enlargement. */
+function lanczosTaps(factor: number, a: number): Tap[][] {
   const support = Math.ceil(a)
-  const taps: { offset: number; weight: number }[][] = []
+  const taps: Tap[][] = []
   for (let phase = 0; phase < factor; phase++) {
     const centre = (phase + 0.5) / factor - 0.5
     const first = Math.floor(centre) - support + 1
-    const row: { offset: number; weight: number }[] = []
+    const row: Tap[] = []
     let sum = 0
     for (let i = 0; i < 2 * support; i++) {
       const w = lanczos(centre - (first + i), a)
@@ -102,6 +104,36 @@ export function upscale(src: Bitmap, factor: number, a = 3): Bitmap {
     for (const t of row) t.weight /= sum
     taps.push(row)
   }
+  return taps
+}
+
+/**
+ * The most `upscale` can multiply non-negative input by.
+ *
+ * Lanczos has negative lobes, so it overshoots. The first pass can reach the largest sum
+ * of positive taps times its input; it can also leave negative values behind, so the
+ * second pass is bounded by the largest sum of absolute taps times that. Under 2 at every
+ * factor the spec allows.
+ */
+export function upscaleGain(factor: number, a = 3): number {
+  if (factor === 1) return 1
+  let positive = 0
+  let absolute = 0
+  for (const row of lanczosTaps(factor, a)) {
+    positive = Math.max(positive, row.reduce((s, t) => s + Math.max(0, t.weight), 0))
+    absolute = Math.max(absolute, row.reduce((s, t) => s + Math.abs(t.weight), 0))
+  }
+  return positive * absolute
+}
+
+/** Enlarge by an integer factor with a Lanczos-3 kernel, separably. */
+export function upscale(src: Bitmap, factor: number, a = 3): Bitmap {
+  if (factor === 1) return src
+  const width = src.width * factor
+  const height = src.height * factor
+
+  // Weights repeat every `factor` output pixels, so they are built once.
+  const taps = lanczosTaps(factor, a)
 
   const tmp = new Float64Array(width * src.height)
   for (let y = 0; y < src.height; y++) {

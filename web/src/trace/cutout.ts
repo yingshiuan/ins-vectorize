@@ -5,16 +5,17 @@
  * being thresholded. This is "remove background" as a deliverable in its own right:
  * no model, no wait, and exact on flat artwork rather than predicted.
  *
- * Hidden colours come out here too, from the same `separate` the SVG is built from, so
- * the two exports cannot disagree about what the user switched off. With nothing hidden
- * that resolves to the plain ink mask and this is byte-for-byte what it always was.
+ * Hidden colours come out here too, from the same `separate` the SVG is built from — the
+ * tracer hands over its own separation — so the two exports cannot disagree about what
+ * the user switched off. With nothing hidden that resolves to the plain ink mask and
+ * this is byte-for-byte what it always was.
  */
+import type { Pixels } from './ink'
 import { visibleCoverage } from './layers'
-import { separate } from './separate'
-import type { TraceSpec } from './spec'
+import type { Separation } from './separate'
 
-export function cutout(img: ImageData, spec: TraceSpec): ImageData {
-  const { mask: whole, stack } = separate(img, spec)
+/** The source with a separation's visible coverage as its alpha. */
+export function applyCoverage(img: Pixels, { mask: whole, stack }: Pick<Separation, 'mask' | 'stack'>): ImageData {
   const mask = visibleCoverage(stack, whole)
 
   const out = new Uint8ClampedArray(img.data.length)

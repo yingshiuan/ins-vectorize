@@ -15,7 +15,7 @@
 import { init, potrace } from 'esm-potrace-wasm'
 import type { Bitmap } from './ink'
 import { pathData, parsePath, parseTransform, toSource } from './parse'
-import type { Seg } from './vec'
+import type { Seg, Vec } from './vec'
 
 let ready: Promise<void> | null = null
 
@@ -45,10 +45,12 @@ export interface TraceOptions {
   despeckle: number
   /** The factor `prepare` enlarged by, divided back out of the result. */
   upscale: number
+  /** Where the bitmap's top-left sat on the canvas, in canvas px, when it is only part of it. */
+  origin?: Vec
 }
 
 /** Outlines of the ink in `bitmap`, in source pixels. */
-export async function traceBitmap(bitmap: Bitmap, { despeckle, upscale }: TraceOptions): Promise<Seg[][]> {
+export async function traceBitmap(bitmap: Bitmap, { despeckle, upscale, origin }: TraceOptions): Promise<Seg[][]> {
   await warmUp()
   const svg = (await potrace(toImageData(bitmap), {
     turdsize: despeckle,
@@ -62,5 +64,5 @@ export async function traceBitmap(bitmap: Bitmap, { despeckle, upscale }: TraceO
 
   const transform = parseTransform(svg)
   const contours = pathData(svg).flatMap(parsePath)
-  return toSource(contours, transform, upscale)
+  return toSource(contours, transform, upscale, origin)
 }

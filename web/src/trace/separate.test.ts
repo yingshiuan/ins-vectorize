@@ -7,21 +7,12 @@
  * so both are checked here rather than through potrace.
  */
 import { describe, expect, it } from 'vitest'
-import { BLACK, BLUE, RED, ground, rect } from './fixtures'
+import { ground, rect, threeInks } from './fixtures'
 import { toHex } from './ink'
 import { visibleCoverage } from './layers'
 import { MAX_INKS } from './census'
 import { chooseInks, paintedColors, separate } from './separate'
 import { TraceSpecSchema, defaultSpec, type TraceSpec } from './spec'
-
-/** Three inks, none of them named: red dominant, black abutting it, a blue accent clear of both. */
-function threeInks() {
-  const img = ground(160, 120)
-  rect(img, 8, 8, 52, 104, RED)
-  rect(img, 60, 8, 40, 104, BLACK)
-  rect(img, 110, 40, 30, 30, BLUE)
-  return img
-}
 
 /** Seven well-separated inks — one more than the default cap of six lets through. */
 function sevenInks() {

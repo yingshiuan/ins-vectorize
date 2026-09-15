@@ -28,7 +28,8 @@ const flags = new Map(
 if (!binPath || !width || !height || !outPath) {
   console.error(
     'usage: trace-file.ts <raw-rgba.bin> <width> <height> <out.svg>' +
-      ' [--mode=auto|single|multi] [--limit=] [--blur=] [--upscale=] [--despeckle=] [--smooth=] [--denoise=]',
+      ' [--mode=auto|single|multi] [--limit=] [--blur=] [--upscale=] [--despeckle=] [--smooth=] [--denoise=]' +
+      ' [--shapes=0] [--repeats=0] [--warm]',
   )
   process.exit(2)
 }
@@ -59,6 +60,8 @@ if (flags.has('upscale')) spec.trace.upscale = flags.get('upscale')!
 if (flags.has('despeckle')) spec.trace.despeckle = flags.get('despeckle')!
 if (flags.has('smooth')) spec.fit.smooth = flags.get('smooth')!
 if (flags.has('denoise')) spec.fit.denoise = flags.get('denoise')!
+if (flags.has('shapes')) spec.fit.shapes = flags.get('shapes') !== 0
+if (flags.has('repeats')) spec.fit.repeats = flags.get('repeats') !== 0
 
 const result = await vectorize(new ImageData(data, w, h), spec)
 writeFileSync(outPath, result.svg)
@@ -70,8 +73,32 @@ console.log(`ink        ${result.ink}`)
 console.log(`verdict    ${result.census?.verdict ?? 'none'}  (${result.census?.distinct.length ?? 0} distinct)`)
 console.log(`outlines   ${result.outlines}`)
 console.log(`nodes      ${result.nodes}`)
+console.log(`circles    ${result.circles}`)
+console.log(`repeats    ${result.repeats}`)
 console.log(`size       ${(Buffer.byteLength(result.svg) / 1024).toFixed(1)} KB`)
 console.log(`time       ${Math.round(result.ms)} ms`)
+const ms = (n: number) => `${Math.round(n)}`
+console.log(
+  `  stages   separate ${ms(result.stages.separate)}  trace ${ms(result.stages.trace)}` +
+    `  fit ${ms(result.stages.fit)}  emit ${ms(result.stages.emit)} ms`,
+)
+
+// What a slider costs once the tracer has something to remember: the worker's case.
+if (argv.includes('--warm')) {
+  const { createTracer } = await import('../src/trace/tracer.ts')
+  const { layerContours } = await import('../src/trace/layer.ts')
+  const tracer = createTracer(layerContours)
+  const image = new ImageData(data, w, h)
+  await tracer.run(image, spec)
+  const steps = [
+    ['smoothing +0.05', { ...spec, fit: { ...spec.fit, smooth: spec.fit.smooth + 0.05 } }],
+    ['page colour', { ...spec, output: { ...spec.output, background: '#ffffff' } }],
+  ] as const
+  for (const [label, next] of steps) {
+    const r = await tracer.run(image, next)
+    console.log(`  warm     ${label.padEnd(16)} ${Math.round(r.ms)} ms`)
+  }
+}
 const { toHex } = await import('../src/trace/ink.ts')
 console.log('  census:')
 for (const ink of result.census?.inks ?? []) {

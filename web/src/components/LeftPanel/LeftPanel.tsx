@@ -2,14 +2,14 @@
 import { useRef, useState } from 'react'
 import { loadImage } from '../../export/download'
 import { useTraceStore } from '../../store/useTraceStore'
-import type { Census } from '../../trace/census'
+import type { CensusSummary } from '../../trace/census'
 import { Field, Section, Slider, Toggle } from '../ui'
 import { ColorField } from '../ColorField'
 import { Colours } from './Colours'
 
 const MAX_BYTES = 12 * 1024 * 1024
 
-export function LeftPanel({ detected, census }: { detected: string | null; census: Census | null }) {
+export function LeftPanel({ detected, census }: { detected: string | null; census: CensusSummary | null }) {
   const { spec, source, picking } = useTraceStore()
   const { patch, setSource, setPicking, begin, end } = useTraceStore()
   const fileRef = useRef<HTMLInputElement>(null)

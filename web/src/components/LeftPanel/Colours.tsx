@@ -11,7 +11,7 @@
  * the panel ordering hides the dependency.
  */
 import { useTraceStore } from '../../store/useTraceStore'
-import { MAX_INKS, type Census, type Ink } from '../../trace/census'
+import { MAX_INKS, type CensusSummary, type Ink } from '../../trace/census'
 import { toHex } from '../../trace/ink'
 import { hidden as hiddenSet, paintedColors } from '../../trace/separate'
 import { Field, Section, SegmentedControl, Slider } from '../ui'
@@ -84,7 +84,7 @@ function Swatch({ ink, painted, off, onToggle }: { ink: Ink; painted: boolean; o
   )
 }
 
-export function Colours({ census }: { census: Census | null }) {
+export function Colours({ census }: { census: CensusSummary | null }) {
   const spec = useTraceStore((s) => s.spec)
   const { patch, begin, end } = useTraceStore()
   const { mode, limit } = spec.palette
