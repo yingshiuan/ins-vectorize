@@ -2,7 +2,7 @@
 
 Drop a PNG or JPG in, get a clean SVG out. Runs entirely in the browser.
 
-![ins-vectorize: the source and its trace side by side, with each colour as its own layer](docs/screenshot.png)
+![ins-vectorize tracing the insdash logo: the source and its trace side by side, each colour its own layer](docs/screenshot.png)
 
 ```bash
 cd web && npm install && npm run dev     # http://localhost:5173
