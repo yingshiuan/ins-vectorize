@@ -1,7 +1,7 @@
 /**
  * The colour census.
  *
- * Every case here was measured before it was written — on real reference artwork, real
+ * Every case here was measured before it was written — on real logo artwork, real
  * photographs, and synthetics built to break specific rules. Two of them killed
  * earlier versions of the discriminator, and they are marked. Assertions check
  * `d1`/`perp`/`interior` and not only the verdict, so a regression says *which* signal

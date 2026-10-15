@@ -5,7 +5,7 @@
  * it how many inks there are, and multi-colour tracing asks it for the palette — one
  * implementation, so the three answers cannot drift apart.
  *
- * Every threshold below was measured over real reference artwork and real photographs.
+ * Every threshold below was measured over real logo artwork and real photographs.
  * They are not taste. Re-run that comparison before changing any of them.
  *
  * Types come from `ink.ts` and values go back to it; `verbatimModuleSyntax` erases

@@ -15,8 +15,10 @@ Image Trace and the online converters all leave you: four hundred nodes where tw
 would do, the bitmap's staircase baked into every edge, circles spelled out as two
 hundred cubics.
 
-The fitter here comes from `logo_svg.py`,
-which was written to build one client's logo set and turned out to be general.
+The fitter here comes from `logo_svg.py`, an unpublished script written to build one
+client's logo set, which turned out to be general. Comments that cite `logo_svg.py:NNN`
+point into that script; the measurements below were taken on that logo set — a
+wordmark, a badge and an emblem — referred to as the reference artwork.
 Its idea: derive the fitting tolerance from the **local radius of curvature**. Gentle
 stretches get a loose tolerance, because the only thing to follow there is the
 bitmap's own noise. Tips and tight bends get 0.2 px, because that is where the detail
@@ -236,10 +238,12 @@ same to the tracer's resolution.
 `web/src/trace/fit.ts` is a port, and a port is worth what its evidence is worth.
 
 ```bash
-LOGO_SVG=/path/to/logo_svg.py python parity/dump.py   # ground truth
+LOGO_SVG=/path/to/logo_svg.py python parity/dump.py         # ground truth
 cd web && npm test                                            # hold the port to it
 ```
 
+`logo_svg.py` is not published, so only its author can regenerate `parity/expected.json`;
+the committed copy is what the tests hold the port to, and everyone can run those.
 `parity/dump.py` drives the original Python over the contours in
 `parity/fixtures/contours.json` and records what it produced. The test suite runs the
 TypeScript over the same contours and requires agreement within 0.01 px. When they
